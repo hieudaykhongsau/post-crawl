@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNExpress Explorer | Cổng Tin Tức Hiện Đại</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="glass-header">
+        <div class="header-container">
+            <div class="logo">
+                <i class="fa-solid fa-newspaper logo-icon"></i>
+                <span>VNX<strong>Plore</strong></span>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm tin tức...">
+                <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            
+            <div class="actions">
+                <button id="themeToggle" class="icon-btn" title="Chuyển chế độ giao diện">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Categories Filter -->
+    <nav class="categories-nav">
+        <ul id="categoryList">
+            <li class="active" data-cat="all">Tất cả</li>
+            <li data-cat="thoi-su">Thời sự</li>
+            <li data-cat="the-thao">Thể thao</li>
+            <li data-cat="kinh-doanh">Kinh doanh</li>
+            <li data-cat="giai-tri">Giải trí</li>
+            <li data-cat="the-gioi">Thế giới</li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Grid -->
+    <main class="content-wrapper">
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Đang tải tin tức mới nhất...</p>
+        </div>
+        
+        <div class="articles-grid" id="articlesGrid">
+            <!-- Bài viết sẽ được render vào đây bằng JS -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 VNXPlore - Powered by Spring Boot & JSoup. Designed by B1nd.</p>
+    </footer>
+
+    <!-- Toast Notification cho hệ thống Crawl -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đọc Báo | VNExpress Explorer</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Specific Reading Page Styles */
+        .reader-container {
+            max-width: 800px;
+            margin: 3rem auto;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+        .back-nav {
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+        .back-btn {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .back-btn:hover {
+            color: var(--accent-color);
+        }
+        .article-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        .reader-category {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+        .reader-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        .reader-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .reader-desc {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+        .reader-body {
+            font-family: 'Merriweather', serif;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+        .reader-body p {
+            margin-bottom: 1.5rem;
+        }
+        .reader-body p:first-letter {
+            font-weight: bold;
+            font-size: 2em;
+            line-height: 1;
+            float: left;
+            margin-right: 5px;
+            color: var(--accent-color);
+        }
+        
+        @media (max-width: 768px) {
+            .reader-container { padding: 1.5rem; margin: 1rem; }
+            .reader-title { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="glass-header">
+        <div class="header-container" style="justify-content: space-between;">
+            <a href="index.html" class="logo" style="text-decoration: none;">
+                <i class="fa-solid fa-newspaper logo-icon"></i>
+                <span>VNX<strong>Plore</strong></span>
+            </a>
+            <div class="actions">
+                <button id="themeToggle" class="icon-btn" title="Chuyển chế độ giao diện">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Đang tải nội dung bài báo...</p>
+        </div>
+
+        <article class="reader-container" id="readerContainer" style="display: none;">
+            <div class="back-nav">
+                <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ</a>
+            </div>
+            
+            <header class="article-header">
+                <span id="arCategory" class="reader-category">THỜI SỰ</span>
+                <h1 id="arTitle" class="reader-title">Tiêu đề bài báo</h1>
+                <div class="reader-meta">
+                    <span id="arDate"><i class="fa-regular fa-clock"></i> </span>
+                    <a id="arOriginalLink" href="#" target="_blank" style="color:var(--text-secondary)"><i class="fa-solid fa-link"></i> Nguồn gốc</a>
+                </div>
+            </header>
+            
+            <section class="reader-desc" id="arDesc">
+                Mô tả ngắn
+            </section>
+            
+            <section class="reader-body" id="arBody">
+                <!-- Nội dung sẽ được render thành các thẻ P -->
+            </section>
+        </article>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 VNXPlore Reader Mode - Môi trường đọc không quảng cáo.</p>
+    </footer>
+
+    <script src="article.js"></script>
+</body>
+</html>
