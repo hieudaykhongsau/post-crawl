@@ -23,7 +23,12 @@ public class Article {
     private String content;
 
     private String category;
-    
+
+    private String subCategory;
+
+    @Column(length = 2000)
+    private String imageUrl;
+
     @Column(unique = true, length = 1000)
     private String url;
 

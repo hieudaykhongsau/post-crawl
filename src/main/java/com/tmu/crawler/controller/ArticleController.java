@@ -2,7 +2,8 @@ package com.tmu.crawler.controller;
 
 import com.tmu.crawler.entity.Article;
 import com.tmu.crawler.repository.ArticleRepository;
-import com.tmu.crawler.service.VnExpressCrawlerService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
@@ -12,33 +13,58 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/articles")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Cho phép mọi frontend gọi tới API này
+@CrossOrigin(origins = "*")
 public class ArticleController {
 
     private final ArticleRepository articleRepository;
-    private final VnExpressCrawlerService crawlerService;
 
-    // Lấy tất cả bài báo (mới nhất)
+    /**
+     * GET /api/articles
+     *   ?limit=9           → N bài mới nhất (trang chủ)
+     *   ?category=X        → Tất cả bài trong category X
+     *   ?category=X&subCategory=Y → Bài trong category X, sub Y
+     */
     @GetMapping
-    public ResponseEntity<List<Article>> getAllArticles() {
-        return ResponseEntity.ok(articleRepository.findAllByOrderByCrawledAtDesc());
+    public ResponseEntity<List<Article>> getArticles(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String subCategory,
+            @RequestParam(required = false, defaultValue = "0") int limit) {
+
+        List<Article> result;
+
+        if (category != null && subCategory != null) {
+            result = articleRepository.findByCategoryAndSubCategoryOrderByCrawledAtDesc(category, subCategory);
+        } else if (category != null) {
+            result = articleRepository.findByCategoryOrderByCrawledAtDesc(category);
+        } else if (limit > 0) {
+            // Trang chủ: chỉ lấy `limit` bài mới nhất
+            Pageable pageable = PageRequest.of(0, limit);
+            result = articleRepository.findAllByOrderByCrawledAtDesc(pageable);
+        } else {
+            // Sidebar trending & các nơi cần tất cả (giới hạn mềm 50)
+            Pageable pageable = PageRequest.of(0, 50);
+            result = articleRepository.findAllByOrderByCrawledAtDesc(pageable);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
-    // Trả về kết quả tìm kiếm theo keyword (Crawl Live)
+    /**
+     * GET /api/articles/search?q=keyword
+     * Tìm trong DB (title + description), giới hạn 20 kết quả
+     */
     @GetMapping("/search")
     public ResponseEntity<List<Article>> searchArticles(@RequestParam("q") String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(articleRepository.findAllByOrderByCrawledAtDesc());
+            Pageable pageable = PageRequest.of(0, 9);
+            return ResponseEntity.ok(articleRepository.findAllByOrderByCrawledAtDesc(pageable));
         }
-        
-        // Gọi Service đi Crawl Live từ VNExpress trước
-        crawlerService.crawlBySearch(keyword.trim());
-        
-        // Sau đó trả về kết quả mới nhất từ DB
-        return ResponseEntity.ok(articleRepository.findByTitleContainingIgnoreCaseOrderByCrawledAtDesc(keyword.trim()));
+        List<Article> result = articleRepository.searchByKeyword(keyword.trim());
+        // Giới hạn 20 kết quả tìm kiếm
+        if (result.size() > 20) result = result.subList(0, 20);
+        return ResponseEntity.ok(result);
     }
 
-    // Lấy chi tiết 1 bài báo để đọc
     @GetMapping("/{id}")
     public ResponseEntity<Article> getArticleById(@PathVariable Long id) {
         return articleRepository.findById(id)

@@ -1,9 +1,8 @@
 package com.tmu.crawler.controller;
 
-import com.tmu.crawler.service.VnExpressCrawlerService;
+import com.tmu.crawler.service.CrawlerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 
@@ -12,17 +11,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CrawlerController {
 
-    private final VnExpressCrawlerService crawlerService;
+    private final CrawlerService crawlerService;
 
+    // Trigger crawler thủ công
     @GetMapping("/start")
-    public String startCrawling(
-            @RequestParam(defaultValue = "thoi-su") String category,
-            @RequestParam(defaultValue = "1") int pages) {
-            
-        new Thread(() -> {
-            crawlerService.crawlCategory(category, pages);
-        }).start();
-
-        return "Crawler is running in background for category: " + category + " for " + pages + " pages.";
+    public String startCrawling() {
+        new Thread(crawlerService::crawlAll).start();
+        return "Đang re-crawl và đồng bộ các link đã thiết lập...";
     }
 }

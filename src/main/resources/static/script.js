@@ -1,158 +1,194 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // DOM Elements
-    const articlesGrid = document.getElementById("articlesGrid");
+    const heroSection = document.getElementById("heroSection");
+    const latestNews = document.getElementById("latestNews");
+    const trendingList = document.getElementById("trendingList");
     const loadingSpinner = document.getElementById("loadingSpinner");
-    const categoryItems = document.querySelectorAll("#categoryList li");
+    const mainContent = document.getElementById("mainContent");
     const searchInput = document.getElementById("searchInput");
     const searchBtn = document.getElementById("searchBtn");
-    const themeToggle = document.getElementById("themeToggle");
-    const toast = document.getElementById("toast");
 
-    let allArticles = [];
-    let currentCategory = "all";
+    let currentCat = "all";
+    let currentSub = "";
 
-    // Icons mapping for categories
-    const categoryIcons = {
-        "thoi-su": "fa-bullhorn",
-        "the-thao": "fa-futbol",
-        "kinh-doanh": "fa-chart-line",
-        "giai-tri": "fa-film",
-        "the-gioi": "fa-globe"
-    };
-
-    const gradientClasses = ["bg-gradient-1", "bg-gradient-2", "bg-gradient-3", "bg-gradient-4"];
-
-    // ===== 1. Khởi chạy & Lấy Dữ Liệu =====
+    // Tải toàn bộ bài khi vào trang
     fetchArticles();
 
-    async function fetchArticles(searchQuery = "") {
-        articlesGrid.innerHTML = "";
-        loadingSpinner.style.display = "block";
-        
-        let url = "/api/articles";
-        if (searchQuery) {
-            url = `/api/articles/search?q=${encodeURIComponent(searchQuery)}`;
+    // === Tìm kiếm ===
+    function doSearch() {
+        const kw = searchInput.value.trim();
+        if (!kw) {
+            fetchArticles();
+            return;
+        }
+        fetchArticlesFrom(`/api/articles/search?q=${encodeURIComponent(kw)}`, `Kết quả: "${kw}"`);
+    }
+    searchBtn.addEventListener("click", doSearch);
+    searchInput.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+
+    // === Xử lý click trên tất cả cat-link (cả parent lẫn submenu) ===
+    document.querySelectorAll(".cat-link").forEach(link => {
+        link.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Đặt active
+            document.querySelectorAll(".cat-link").forEach(l => l.classList.remove("active"));
+            link.classList.add("active");
+
+            currentCat = link.getAttribute("data-cat") || "all";
+            currentSub = link.getAttribute("data-sub") || "";
+            searchInput.value = "";
+            fetchArticles();
+        });
+    });
+
+    // === Fetch & render theo trạng thái hiện tại ===
+    function fetchArticles() {
+        let url;
+        let label;
+
+        if (currentCat === "all") {
+            // Trang chủ: chỉ lấy 9 bài mới nhất
+            url = "/api/articles?limit=9";
+            label = "Tin tức nổi bật";
+        } else if (currentSub) {
+            url = `/api/articles?category=${currentCat}&subCategory=${currentSub}`;
+            label = labelOf(currentSub);
+        } else {
+            url = `/api/articles?category=${currentCat}`;
+            label = labelOf(currentCat);
         }
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Lỗi kết nối Server");
-            
-            allArticles = await response.json();
-            renderArticles();
-        } catch (error) {
-            console.error("Lỗi:", error);
-            articlesGrid.innerHTML = `<div class="empty-state">
-                                        <i class="fa-solid fa-triangle-exclamation"></i>
-                                        <h2>Không thể kết nối đến Máy Chủ</h2>
-                                        <p>Vui lòng đảm bảo Spring Boot Backend đang chạy.</p>
-                                      </div>`;
-        } finally {
-            loadingSpinner.style.display = "none";
-        }
+        fetchArticlesFrom(url, label);
     }
 
-    // ===== 2. Render Giao Diện =====
-    function renderArticles() {
-        articlesGrid.innerHTML = "";
+    async function fetchArticlesFrom(url, sectionLabel) {
+        mainContent.style.display = "none";
+        loadingSpinner.style.display = "block";
 
-        // Lọc theo Category
-        let displayData = allArticles;
-        if (currentCategory !== "all") {
-            displayData = allArticles.filter(a => a.category === currentCategory);
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const articles = await res.json();
+            renderLayout(articles, sectionLabel);
+        } catch (err) {
+            heroSection.innerHTML = `<p style="color:red; padding:20px;">Lỗi kết nối server: ${err.message}</p>`;
+            latestNews.innerHTML = "";
+        } finally {
+            loadingSpinner.style.display = "none";
+            mainContent.style.display = "block";
         }
 
-        if (displayData.length === 0) {
-            articlesGrid.innerHTML = `<div class="empty-state">
-                                        <i class="fa-regular fa-folder-open"></i>
-                                        <h2>Không có bài báo nào</h2>
-                                        <p>Thử bấm "Lấy Dữ Liệu" ở trên để Crawler bắt đầu làm việc.</p>
-                                      </div>`;
+        // Luôn tải lại trending từ toàn bộ bài
+        fetchTrending();
+    }
+
+    // === Render layout chính ===
+    function renderLayout(articles, sectionLabel) {
+        if (!articles || articles.length === 0) {
+            heroSection.innerHTML = `
+                <div style="text-align:center;padding:60px 0;color:#888;">
+                    <i class="fa fa-newspaper" style="font-size:48px;color:#ddd;"></i>
+                    <p style="margin-top:16px;">Không có bài báo nào.</p>
+                </div>`;
+            latestNews.innerHTML = "";
             return;
         }
 
-        displayData.forEach((article, index) => {
-            const card = document.createElement("div");
-            card.className = "article-card";
-            
-            // Random Gradient & Icon
-            const gradientCls = gradientClasses[index % gradientClasses.length];
-            const iconCls = categoryIcons[article.category] || "fa-newspaper";
-            
-            // Format Thời gian
-            const dateStr = article.crawledAt ? 
-                  new Intl.DateTimeFormat('vi-VN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(article.crawledAt)) :
-                  "Vừa cập nhật";
+        // --- HERO SECTION ---
+        let heroHtml = "";
 
-            card.innerHTML = `
-                <div class="article-image ${gradientCls}">
-                    <i class="fa-solid ${iconCls}"></i>
-                </div>
-                <div class="article-content">
-                    <span class="article-category">#${article.category.toUpperCase().replace('-', ' ')}</span>
-                    <h3 class="article-title">${article.title}</h3>
-                    <p class="article-desc">${article.description || ''}</p>
-                    
-                    <div class="article-footer">
-                        <span class="date"><i class="fa-regular fa-clock"></i> ${dateStr}</span>
-                        <a href="article.html?id=${article.id}" class="read-more">Đọc Ngay <i class="fa-solid fa-arrow-right"></i></a>
-                    </div>
-                </div>
-            `;
-            articlesGrid.appendChild(card);
+        // Bài chính (index 0)
+        const main = articles[0];
+        heroHtml += `
+        <div class="main-news">
+          <a href="article.html?id=${main.id}">
+            <img src="${main.imageUrl || 'https://placehold.co/800x450/f0f0f0/aaa?text=7news'}"
+                 alt="${esc(main.title)}" loading="lazy"/>
+          </a>
+          <h1><a href="article.html?id=${main.id}" class="article-title-link">${main.title}</a></h1>
+          <p class="main-desc">${main.description || ''}</p>
+        </div>`;
+
+        // 2 bài phụ (index 1 & 2)
+        if (articles.length >= 2) {
+            heroHtml += `<div class="sub-news">`;
+            for (let i = 1; i < Math.min(3, articles.length); i++) {
+                const sub = articles[i];
+                heroHtml += `
+                <div class="sub-news-item">
+                  <a href="article.html?id=${sub.id}">
+                    <img src="${sub.imageUrl || 'https://placehold.co/400x225/f0f0f0/aaa?text=7news'}"
+                         alt="${esc(sub.title)}" loading="lazy"/>
+                  </a>
+                  <h3><a href="article.html?id=${sub.id}" class="article-title-link">${sub.title}</a></h3>
+                </div>`;
+            }
+            heroHtml += `</div>`;
+        }
+        heroSection.innerHTML = heroHtml;
+
+        // --- LATEST NEWS LIST (bài 4 trở đi) ---
+        let listHtml = `<h2 class="section-title">${sectionLabel}</h2>`;
+
+        const remaining = articles.slice(3);
+        if (remaining.length === 0) {
+            listHtml += `<p class="empty-msg">Không có thêm bài báo.</p>`;
+        }
+        remaining.forEach(item => {
+            const badge = item.subCategory ? labelOf(item.subCategory) : labelOf(item.category);
+            listHtml += `
+            <div class="news-list-item">
+              <a href="article.html?id=${item.id}" class="news-thumb">
+                <img src="${item.imageUrl || 'https://placehold.co/200x120/f0f0f0/aaa?text=7news'}"
+                     alt="${esc(item.title)}" loading="lazy"/>
+              </a>
+              <div class="news-content">
+                <span class="news-badge">${badge}</span>
+                <h3><a href="article.html?id=${item.id}" class="article-title-link">${item.title}</a></h3>
+                <p>${item.description || ''}</p>
+              </div>
+            </div>`;
         });
+        latestNews.innerHTML = listHtml;
     }
 
-    // ===== 3. Sự kiện Filter Chủ Đề =====
-    categoryItems.forEach(item => {
-        item.addEventListener("click", () => {
-            // Remove active class
-            categoryItems.forEach(c => c.classList.remove("active"));
-            
-            item.classList.add("active");
-            currentCategory = item.getAttribute("data-cat");
-            renderArticles(); // Chạy lại logic render (ko gọi api tốn time)
-        });
-    });
-
-    // ===== 4. Sự Kiện Tìm Kiếm =====
-    searchBtn.addEventListener("click", () => {
-        const keyword = searchInput.value.trim();
-        fetchArticles(keyword);
-    });
-
-    searchInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            fetchArticles(searchInput.value.trim());
-        }
-    });
-
-    // ===== 5. Thay Đổi Giao Diện (Dark Mode) =====
-    // Check sở thích ng dùng 
-    if (localStorage.getItem("theme") === "dark") {
-        document.body.classList.add("dark-mode");
-        themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+    // === Sidebar Trending: chỉ lấy 7 bài mới nhất ===
+    function fetchTrending() {
+        fetch("/api/articles?limit=7")
+            .then(r => r.json())
+            .then(list => {
+                let html = "";
+                const top = list.slice(0, 7);
+                top.forEach((a, i) => {
+                    html += `<li><a href="article.html?id=${a.id}" class="article-title-link">${i + 1}. ${a.title}</a></li>`;
+                });
+                trendingList.innerHTML = html;
+            })
+            .catch(() => {});
     }
 
-    themeToggle.addEventListener("click", () => {
-        document.body.classList.toggle("dark-mode");
-        const isDark = document.body.classList.contains("dark-mode");
-        
-        if (isDark) {
-            themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
-            localStorage.setItem("theme", "dark");
-        } else {
-            themeToggle.innerHTML = '<i class="fa-solid fa-moon"></i>';
-            localStorage.setItem("theme", "light");
-        }
-    });
+    // === Tiện ích ===
+    function labelOf(slug) {
+        const map = {
+            "all": "Tất cả",
+            "chinh-tri": "Chính trị", "trong-nuoc": "Trong nước",
+            "quoc-te": "Quốc tế", "luat-chinh-sach": "Luật & Chính sách",
+            "tin-tuc": "Tin tức",
+            "phap-luat": "Pháp luật", "dan-su": "Dân sự",
+            "hinh-su": "Hình sự", "hanh-chinh": "Hành chính",
+            "giao-duc": "Giáo dục", "tuyen-sinh": "Tuyển sinh", "du-hoc": "Du học",
+            "the-thao": "Thể thao", "bong-da": "Bóng đá", "marathon": "Marathon",
+            "kinh-doanh": "Kinh doanh", "chung-khoan": "Chứng khoán",
+            "ebank": "Ebank", "vi-mo": "Vĩ mô",
+            "bat-dong-san": "Bất động sản",
+            "chinh-sach": "Chính sách", "thi-truong": "Thị trường"
+        };
+        return map[slug] || slug;
+    }
 
-    // Hàm hiện thông báo Toast
-    function showToast(message) {
-        toast.innerText = message;
-        toast.classList.add("show");
-        setTimeout(() => {
-            toast.classList.remove("show");
-        }, 5000);
+    function esc(str) {
+        if (!str) return "";
+        return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 });
